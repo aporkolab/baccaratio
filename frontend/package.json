@@ -14,7 +14,7 @@
     "test": "ng test"
   },
   "private": true,
-  "homepage": "https://www.baccaratio.porkolab.hu",
+  "homepage": "https://www.baccaratio.aporkolab.com",
   "dependencies": {
     "@angular/animations": "~20.1.5",
     "@angular/cli": "^20.1.5",
