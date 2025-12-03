@@ -12,10 +12,6 @@
 
 Baccaratio is a comprehensive web application that combines a backend built with Spring Boot 3.2.4 and a front-end developed using Angular 20.2.1. The primary purpose of Baccaratio is to provide a simulated environment for the popular casino game Baccarat, allowing players to place bets, participate in rounds, and monitor their chip balances. The backend is RESTful, ensuring seamless integration with various front-end applications.
 
-## Availability
-
-Baccaratio is also available for demonstration purposes at [https://baccaratio.aporkolab.com/](https://baccaratio.aporkolab.com/), where users can experience the functionality and features of the application firsthand. ***Please be patient, because the backend of the application needs to 'wake up', and the first responses may be slower than normal.***
-
 ## Setup
 
 ### Prerequisites
