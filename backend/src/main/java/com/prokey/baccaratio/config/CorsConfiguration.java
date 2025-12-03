@@ -13,33 +13,33 @@ public class CorsConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // Környezeti változó beolvasása
+        
         String corsOriginEnv = System.getenv("CORS_ORIGIN");
 
-        // Alapértelmezett engedélyezett eredetek
+        
         String[] defaultOrigins = {
                 "http://www.baccaratio.devma.de",
                 "https://www.baccaratio.devma.de",
                 "http://baccaratio.devma.de",
                 "https://baccaratio.devma.de",
-                "http://www.baccaratio.porkolab.hu",
-                "https://www.baccaratio.porkolab.hu",
-                "http://baccaratio.porkolab.hu",
-                "https://baccaratio.porkolab.hu",
+                "http://www.baccaratio.aporkolab.com",
+                "https://www.baccaratio.aporkolab.com",
+                "http://baccaratio.aporkolab.com",
+                "https://baccaratio.aporkolab.com",
                 "http://localhost:4200"
         };
 
-        // Engedélyezett eredetek összegyűjtése, duplikációk kiszűrésével
+        
         Set<String> allowedOriginsSet = new HashSet<>(Arrays.asList(defaultOrigins));
 
-        // Környezeti változó hozzáadása, ha van érték
+        
         if (corsOriginEnv != null && !corsOriginEnv.isEmpty()) {
             allowedOriginsSet.addAll(Arrays.asList(corsOriginEnv.split(",")));
         }
 
-        // Eredeti CORS konfiguráció a duplikációk nélkül
+        
         registry.addMapping("/**")
-                .allowedOrigins(allowedOriginsSet.toArray(new String[0])) // Átalakítjuk tömbbé
+                .allowedOrigins(allowedOriginsSet.toArray(new String[0])) 
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true)
                 .allowedHeaders("*")

@@ -14,7 +14,7 @@ Baccaratio is a comprehensive web application that combines a backend built with
 
 ## Availability
 
-Baccaratio is also available for demonstration purposes at [https://baccaratio.porkolab.hu/](https://baccaratio.porkolab.hu/), where users can experience the functionality and features of the application firsthand. ***Please be patient, because the backend of the application needs to 'wake up', and the first responses may be slower than normal.***
+Baccaratio is also available for demonstration purposes at [https://baccaratio.aporkolab.com/](https://baccaratio.aporkolab.com/), where users can experience the functionality and features of the application firsthand. ***Please be patient, because the backend of the application needs to 'wake up', and the first responses may be slower than normal.***
 
 ## Setup
 
