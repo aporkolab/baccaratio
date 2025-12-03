@@ -71,9 +71,9 @@ describe('AppComponent', () => {
     expect(emailLink.href).toContain('mailto:adam@porkolab.hu');
     expect(emailLink.target).toBe('_blank');
 
-    const websiteLink = compiled.querySelector('a[href^="https://www.adamporkolab.hu"]') as HTMLAnchorElement;
+    const websiteLink = compiled.querySelector('a[href^="https://www.aporkolab.com"]') as HTMLAnchorElement;
     expect(websiteLink).toBeTruthy();
-    expect(websiteLink.href).toBe('https://www.adamporkolab.hu/');
+    expect(websiteLink.href).toBe('https://www.aporkolab.com/');
     expect(websiteLink.target).toBe('_blank');
 
     const githubLink = compiled.querySelector('a[href^="https://github.com/APorkolab"]') as HTMLAnchorElement;
