@@ -16,7 +16,7 @@
   "private": true,
   "homepage": "https://www.baccaratio.aporkolab.com",
   "dependencies": {
-    "@angular/animations": "~20.1.5",
+    "@angular/animations": "~20.2.1",
     "@angular/cli": "^20.1.5",
     "@angular/common": "~20.1.5",
     "@angular/compiler": "~20.1.5",
