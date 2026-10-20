@@ -50,10 +50,11 @@
     "ngx-build-plus": "^20.0.0",
     "typescript": "~6.0.3",
     "webpack": "^5.110.3",
-    "webpack-merge": "^6.0.1"
+    "webpack-merge": "^6.0.1",
+    "braces": "file:vendor/braces"
   },
   "overrides": {
-    "braces": "file:vendor/braces",
+    "braces": "$braces",
     "compression": "^1.8.2"
   }
 }
