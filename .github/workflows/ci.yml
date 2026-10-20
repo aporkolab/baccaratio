@@ -209,7 +209,7 @@ jobs:
 
       - name: Clean install (dev deps included)
         run: |
-          rm -rf node_modules package-lock.json
+          rm -rf node_modules
           npm ci --include=dev
 
       - name: Temporarily remove ngx-build-plus (if present)
