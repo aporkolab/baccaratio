@@ -24,7 +24,7 @@ jobs:
       JAVA_DIR: ${{ steps.out.outputs.JAVA_DIR }}
       NODE_DIR: ${{ steps.out.outputs.NODE_DIR }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: out
         run: |
           # --- Find frontend: prefer 'frontend/', otherwise any angular.json ---
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.detect-paths.outputs.JAVA_DIR != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: jd
         run: |
           cd "${{ needs.detect-paths.outputs.JAVA_DIR }}"
@@ -110,8 +110,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.detect-paths.outputs.NODE_DIR != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -143,9 +143,9 @@ jobs:
       run:
         working-directory: ${{ needs.detect-paths.outputs.FRONT_DIR }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -154,33 +154,14 @@ jobs:
       # Mindig tiszta, reprodukálható telepítés + devDependencies
       - name: Install dependencies (ci + dev)
         run: |
-          npm ci --include=dev || npm ci --legacy-peer-deps --include=dev
+          npm ci --include=dev
 
-      # Toolchain guard: ha a lock/dep-list nem hozza, pótoljuk a webpack láncot
-      - name: Ensure build toolchain (webpack for ngx-build-plus)
-        run: |
-          set -e
-          npm ls webpack >/dev/null 2>&1 || npm i -D webpack@^5 webpack-merge@^5 @types/webpack@^5
-          # ha saját loader/plugin kell a webpack.config.js-ben, itt lehet pótolni: npm i -D <loader/plugin>
+      - name: Dependency security regressions
+        run: npm run test:dependency-guards
 
-      - name: Check if Angular upgrade is needed
-        id: check_upgrade
-        if: ${{ needs.detect-paths.outputs.FRONT_IS_ANGULAR == 'true' }}
-        env:
-          NPM_CONFIG_FUND: "false"
-        run: |
-          echo "Checking for potential Angular version mismatch..."
-          LATEST_MAJ=$(npm view @angular/core version | sed 's/\..*//')
-          CURRENT_VER=$(node -p "require('./node_modules/@angular/core/package.json').version")
-          CURRENT_MAJ=$(echo "$CURRENT_VER" | sed -E 's/\..*//')
+      - name: Dependency audit
+        run: npm audit --audit-level=high
 
-          if [ "$CURRENT_MAJ" -lt "$LATEST_MAJ" ]; then
-            echo "UPGRADE_NEEDED=true" >> $GITHUB_OUTPUT
-            echo "::warning::Angular upgrade needed from v${CURRENT_MAJ} to v${LATEST_MAJ}. Skipping build and tests. Please run the 'Tool – Angular Full Upgrade PR (Iterative)' workflow."
-          else
-            echo "UPGRADE_NEEDED=false" >> $GITHUB_OUTPUT
-            echo "Angular version is up to date."
-          fi
       - name: Create .env from GitHub Secrets
         working-directory: ${{ needs.detect-paths.outputs.FRONT_DIR }}
         run: |
@@ -195,18 +176,16 @@ jobs:
           # SOME_KEY: ${{ secrets.SOME_KEY }}
 
       - name: Build (Angular or generic)
-        if: ${{ steps.check_upgrade.outputs.UPGRADE_NEEDED != 'true' }}
         env:
           CI: "true"
         run: |
           npm run build --if-present
 
-      - name: Optional tests (best-effort)
-        if: ${{ steps.check_upgrade.outputs.UPGRADE_NEEDED != 'true' }}
+      - name: Frontend tests
         env:
           CI: "true"
         run: |
-          npm run test --if-present -- --watch=false --browsers=ChromeHeadless || echo "Skipping tests."
+          npm test -- --watch=false --browsers=ChromeHeadless
 
   # =============== TOOL: Manual Angular Full Upgrade PR ===============
   upgrade-angular-loop:
@@ -221,17 +200,17 @@ jobs:
       run:
         working-directory: ${{ needs.detect-paths.outputs.FRONT_DIR }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
       - name: Clean install (dev deps included)
         run: |
-          rm -rf node_modules package-lock.json
-          npm ci --include=dev || npm ci --legacy-peer-deps --include=dev
+          rm -rf node_modules
+          npm ci --include=dev
 
       - name: Temporarily remove ngx-build-plus (if present)
         id: maybe_remove_ngxbp

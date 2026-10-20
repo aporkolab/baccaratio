@@ -48,7 +48,7 @@ Ensure JDK 17 and Maven are installed and properly configured in your developmen
 
 Before setting up the Angular frontend for Baccaratio, ensure you have the following prerequisites installed on your system:
 
--   Node.js (version 14.x or later)
+-   Node.js 24 (version 24.15.0 or later within the 24.x line)
 -   npm (Node Package Manager, typically installed with Node.js)
 
 #### Setup

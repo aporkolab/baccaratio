@@ -1,0 +1,59 @@
+# Keep framework updates together; security fixes are not delayed by the monthly schedule.
+# Zone.js patches Jasmine globals; Jasmine 7 makes those globals read-only.
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: /frontend
+  ignore:
+  - dependency-name: typescript
+    update-types:
+    - version-update:semver-major
+  - dependency-name: jasmine-core
+    update-types:
+    - version-update:semver-major
+  schedule:
+    interval: monthly
+    time: 09:00
+    timezone: Europe/Budapest
+  open-pull-requests-limit: 3
+  labels:
+  - dependencies
+  commit-message:
+    prefix: build(deps)
+  groups:
+    security:
+      patterns:
+      - '*'
+      applies-to: security-updates
+    angular:
+      patterns:
+      - '@angular/*'
+      - '@angular-devkit/*'
+      - '@angular-eslint/*'
+      - angular-eslint
+      - '@ngrx/*'
+      - typescript
+      - zone.js
+      - jest-preset-angular
+    tooling:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: monthly
+    time: 09:00
+    timezone: Europe/Budapest
+  open-pull-requests-limit: 3
+  labels:
+  - dependencies
+  - ci
+  commit-message:
+    prefix: build(deps)
+  groups:
+    actions:
+      patterns:
+      - '*'

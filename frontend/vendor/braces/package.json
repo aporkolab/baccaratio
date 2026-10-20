@@ -1,0 +1,15 @@
+{
+  "name": "@aporkolab/braces-guarded",
+  "version": "3.0.3",
+  "private": true,
+  "description": "Local braces 3.0.3 fork with bounded AST depth for GHSA-vfj7-8cjw-p6xm",
+  "license": "MIT",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "main": "index.js",
+  "dependencies": {
+    "fill-range": "^7.1.1"
+  },
+  "scripts": {
+    "test": "node --test test.cjs"
+  }
+}
