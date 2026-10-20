@@ -2,7 +2,7 @@
   "name": "baccaratio",
   "version": "1.0.0",
   "engines": {
-    "node": "^22.22.3 || ^24.15.0 || >=26.0.0",
+    "node": "^24.15.0",
     "npm": ">=10 <12"
   },
   "scripts": {
@@ -11,33 +11,33 @@
     "build": "ng build --configuration=production --extra-webpack-config webpack.config.js",
     "postinstall": "npm run build",
     "watch": "ng build --watch --configuration=development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:dependency-guards": "node --test vendor/braces/test.cjs"
   },
   "private": true,
   "homepage": "https://www.baccaratio.aporkolab.com",
   "dependencies": {
-    "@angular/animations": "^22.1.5",
-    "@angular/cli": "~22.1.7",
-    "@angular/common": "^22.1.5",
-    "@angular/compiler": "^22.1.5",
-    "@angular/core": "^22.1.5",
-    "@angular/forms": "^22.1.5",
-    "@angular/platform-browser": "^22.1.5",
-    "@angular/platform-browser-dynamic": "^22.1.5",
-    "@angular/router": "^22.2.1",
+    "@angular/animations": "22.2.3",
+    "@angular/cli": "22.2.3",
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/forms": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "@angular/platform-browser-dynamic": "22.2.3",
+    "@angular/router": "22.2.3",
     "baccaratio": "file:",
     "dotenv": "^17.4.2",
     "dotenv-webpack": "^9.0.0",
-    "fix": "^0.0.6",
     "rxjs": "~7.8.2",
     "serve": "^14.2.6",
     "tslib": "^2.8.1",
     "zone.js": "~0.16.3"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^22.1.7",
-    "@angular/cli": "~22.1.7",
-    "@angular/compiler-cli": "^22.1.5",
+    "@angular-devkit/build-angular": "22.2.3",
+    "@angular/cli": "22.2.3",
+    "@angular/compiler-cli": "22.2.3",
     "@types/jasmine": "~6.0.0",
     "@types/node": "^26.5.0",
     "@types/webpack": "^5.28.5",
@@ -51,5 +51,9 @@
     "typescript": "~6.0.3",
     "webpack": "^5.110.3",
     "webpack-merge": "^6.0.1"
+  },
+  "overrides": {
+    "braces": "file:vendor/braces",
+    "compression": "^1.8.2"
   }
 }
