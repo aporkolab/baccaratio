@@ -1,37 +1,47 @@
-<app-player-status (showAuthorModalEvent)="showModal = true"
-	(hideAuthorModalEvent)="showModal = false"></app-player-status>
+<app-player-status></app-player-status>
 
 <div class="betting-area">
-	<app-bet-history></app-bet-history>
-	<app-bet-panel (currentBetAmountChanged)="handleBetAmountChange($event)" (showAuthorModalEvent)="showModal = true"
-		(hideAuthorModalEvent)="showModal = false"></app-bet-panel>
+  <app-bet-history></app-bet-history>
+  <app-bet-panel (currentBetAmountChanged)="handleBetAmountChange($event)"></app-bet-panel>
 </div>
 
 <div class="game-table-container">
-    <div class="labels-container">
-        <div class="hand-label player">Player</div>
-        <div class="hand-label banker">Banker</div>
+  <div class="labels-container">
+    <div class="hand-label player">Player</div>
+    <div class="hand-label banker">Banker</div>
+  </div>
+
+  <div class="hands-wrapper">
+    <div class="hand-container player-hand">
+      <div class="hand">
+        @for (card of playerCards; track $index) {
+          <div class="card" [@cardAnimation]>
+            <img
+              [src]="getCardImage(card)"
+              [alt]="card.value + ' of ' + card.suit"
+              class="card-image"
+            />
+          </div>
+        }
+      </div>
     </div>
 
-    <div class="hands-wrapper">
-        <div class="hand-container player-hand">
-            <div class="hand">
-                <div *ngFor="let card of playerCards" class="card" [@cardAnimation]>
-                    <img [src]="getCardImage(card)" [alt]="card.value + ' of ' + card.suit" class="card-image">
-                </div>
-            </div>
-        </div>
+    @if (isLoading) {
+      <div class="loading-indicator">Calculating...</div>
+    }
 
-        <div *ngIf="isLoading" class="loading-indicator">
-            Calculating...
-        </div>
-
-        <div class="hand-container banker-hand">
-            <div class="hand">
-                <div *ngFor="let card of bankerCards" class="card" [@cardAnimation]>
-                    <img [src]="getCardImage(card)" [alt]="card.value + ' of ' + card.suit" class="card-image">
-                </div>
-            </div>
-        </div>
+    <div class="hand-container banker-hand">
+      <div class="hand">
+        @for (card of bankerCards; track $index) {
+          <div class="card" [@cardAnimation]>
+            <img
+              [src]="getCardImage(card)"
+              [alt]="card.value + ' of ' + card.suit"
+              class="card-image"
+            />
+          </div>
+        }
+      </div>
     </div>
+  </div>
 </div>

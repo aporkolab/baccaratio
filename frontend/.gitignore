@@ -42,3 +42,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Keep the audited dependency backport in source control.
+!vendor/minimatch/dist/
+!vendor/minimatch/dist/**

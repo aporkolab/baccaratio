@@ -1,10 +1,15 @@
 package com.prokey.baccaratio.model;
 
-import com.prokey.baccaratio.service.BaccaratService.BetType;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A single player's Baccarat table. Instances are shared between requests of the
+ * same user, so all state-changing operations are synchronized.
+ */
 public class Game {
+    private static final int RESHUFFLE_THRESHOLD = 15;
+
     private final Deck deck;
     private final Player player;
     private String lastResult = "";
@@ -23,8 +28,8 @@ public class Game {
         this.deck = deck;
     }
 
-    public boolean placeBet(BetType type, int amount) {
-        if (amount <= 0 || this.player.getChips() < amount) {
+    public synchronized boolean placeBet(BetType type, int amount) {
+        if (type == null || amount <= 0 || this.player.getChips() < amount) {
             return false;
         }
         this.betType = type;
@@ -32,7 +37,7 @@ public class Game {
         return true;
     }
 
-    public String playRound() {
+    public synchronized String playRound() {
         if (this.betAmount == 0 || this.betType == null) {
             throw new IllegalStateException("A bet must be placed before starting the round.");
         }
@@ -49,15 +54,11 @@ public class Game {
         int playerTotal = calculateTotal(playerCards);
         int bankerTotal = calculateTotal(bankerCards);
 
-        if (playerTotal >= 8 || bankerTotal >= 8) { // Natural win check
-            lastResult = determineOutcome(playerTotal, bankerTotal);
-            updateChipsBasedOnResult(lastResult);
-            return lastResult;
+        if (playerTotal < 8 && bankerTotal < 8) { // No natural: apply the third card rules
+            drawAdditionalCards(playerTotal);
+            playerTotal = calculateTotal(playerCards);
+            bankerTotal = calculateTotal(bankerCards);
         }
-
-        drawAdditionalCards(playerTotal, bankerTotal);
-        playerTotal = calculateTotal(playerCards);
-        bankerTotal = calculateTotal(bankerCards);
 
         lastResult = determineOutcome(playerTotal, bankerTotal);
         updateChipsBasedOnResult(lastResult);
@@ -72,7 +73,7 @@ public class Game {
     private void resetRoundState() {
         playerCards.clear();
         bankerCards.clear();
-        if (deck.getCards().size() < 15) { // Reshuffle if deck is low
+        if (deck.size() < RESHUFFLE_THRESHOLD) { // Reshuffle if deck is low
             deck.reshuffle();
         }
     }
@@ -85,21 +86,20 @@ public class Game {
     }
 
     private int calculateTotal(List<Card> cards) {
-        return cards.stream().mapToInt(Card::getPoints).sum() % 10;
+        return cards.stream().mapToInt(Card::points).sum() % 10;
     }
 
-    private void drawAdditionalCards(int playerTotal, int bankerTotal) {
+    private void drawAdditionalCards(int playerTotal) {
         boolean playerDrew = false;
         if (playerTotal <= 5) {
             playerCards.add(deck.draw());
             playerDrew = true;
         }
 
-        // Must recalculate banker's total before deciding if they draw
         int newBankerTotal = calculateTotal(bankerCards);
         if (playerDrew) {
             // Player drew, banker's draw depends on more complex rules
-            int playerThirdCardValue = playerCards.get(2).getPoints();
+            int playerThirdCardValue = playerCards.get(2).points();
             if (shouldBankerDraw(newBankerTotal, playerThirdCardValue)) {
                 bankerCards.add(deck.draw());
             }
@@ -132,64 +132,42 @@ public class Game {
     }
 
     private void updateChipsBasedOnResult(String winner) {
-        switch (betType) {
-            case PLAYER:
-                if ("Player".equals(winner)) {
-                    player.win(betAmount * 2); // 1:1 payout
-                } else if ("Tie".equals(winner)) {
-                    player.win(betAmount); // Push
-                }
-                break;
-            case BANKER:
-                if ("Banker".equals(winner)) {
-                    player.win((int) (betAmount * 1.95)); // 0.95:1 payout
-                } else if ("Tie".equals(winner)) {
-                    player.win(betAmount); // Push
-                }
-                break;
-            case TIE:
-                if ("Tie".equals(winner)) {
-                    player.win(betAmount * 9); // 8:1 payout
-                }
-                break;
-            case PLAYERPAIR:
-                if (isPair(playerCards)) {
-                    player.win(betAmount * 12); // 11:1 payout
-                }
-                break;
-            case BANKERPAIR:
-                if (isPair(bankerCards)) {
-                    player.win(betAmount * 12); // 11:1 payout
-                }
-                break;
-            case EITHERPAIR:
-                if (isPair(playerCards) || isPair(bankerCards)) {
-                    player.win(betAmount * 6); // 5:1 payout
-                }
-                break;
-            case PERFECTPAIRONE:
-                if (isPerfectPair(playerCards) || isPerfectPair(bankerCards)) {
-                    player.win(betAmount * 26); // 25:1 payout
-                }
-                break;
+        int payout = switch (betType) {
+            case PLAYER -> "Player".equals(winner) ? betAmount * 2 // 1:1 payout
+                    : "Tie".equals(winner) ? betAmount : 0; // Push
+            // 0.95:1 payout, rounded down
+            case BANKER -> "Banker".equals(winner) ? betAmount + betAmount * 95 / 100
+                    : "Tie".equals(winner) ? betAmount : 0; // Push
+            case TIE -> "Tie".equals(winner) ? betAmount * 9 : 0; // 8:1 payout
+            case PLAYERPAIR -> isPair(playerCards) ? betAmount * 12 : 0; // 11:1 payout
+            case BANKERPAIR -> isPair(bankerCards) ? betAmount * 12 : 0; // 11:1 payout
+            case EITHERPAIR -> isPair(playerCards) || isPair(bankerCards) ? betAmount * 6 : 0; // 5:1 payout
+            case PERFECTPAIRONE -> isPerfectPair(playerCards) || isPerfectPair(bankerCards) ? betAmount * 26 : 0; // 25:1 payout
+        };
+        if (payout > 0) {
+            player.win(payout);
         }
     }
 
     private boolean isPair(List<Card> cards) {
-        return cards.size() >= 2 && cards.get(0).getValue().equals(cards.get(1).getValue());
+        return cards.size() >= 2 && cards.get(0).value().equals(cards.get(1).value());
     }
 
     private boolean isPerfectPair(List<Card> cards) {
         return cards.size() >= 2 &&
-               cards.get(0).getValue().equals(cards.get(1).getValue()) &&
-               cards.get(0).getSuit().equals(cards.get(1).getSuit());
+               cards.get(0).value().equals(cards.get(1).value()) &&
+               cards.get(0).suit().equals(cards.get(1).suit());
     }
 
     // Getters for state
+    public synchronized GameSnapshot snapshot() {
+        return new GameSnapshot(player.getChips(), betType, betAmount, lastResult, playerCards, bankerCards);
+    }
+
     public Player getPlayer() { return player; }
-    public String getLastResult() { return lastResult; }
-    public BetType getBetType() { return betType; }
-    public int getBetAmount() { return betAmount; }
-    public List<Card> getPlayerCards() { return new ArrayList<>(playerCards); }
-    public List<Card> getBankerCards() { return new ArrayList<>(bankerCards); }
+    public synchronized String getLastResult() { return lastResult; }
+    public synchronized BetType getBetType() { return betType; }
+    public synchronized int getBetAmount() { return betAmount; }
+    public synchronized List<Card> getPlayerCards() { return new ArrayList<>(playerCards); }
+    public synchronized List<Card> getBankerCards() { return new ArrayList<>(bankerCards); }
 }
