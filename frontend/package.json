@@ -12,7 +12,7 @@
     "postinstall": "npm run build",
     "watch": "ng build --watch --configuration=development",
     "test": "ng test",
-    "test:dependency-guards": "node --test vendor/braces/test.cjs vendor/minimatch/test.cjs"
+    "test:dependency-guards": "node --test vendor/braces/test.cjs vendor/minimatch/test.cjs vendor/picomatch/test.cjs"
   },
   "private": true,
   "homepage": "https://www.baccaratio.aporkolab.com",
@@ -26,7 +26,6 @@
     "@angular/platform-browser": "22.2.4",
     "@angular/platform-browser-dynamic": "22.2.4",
     "@angular/router": "22.2.4",
-    "baccaratio": "file:",
     "dotenv": "^18.0.9",
     "dotenv-webpack": "^9.0.0",
     "rxjs": "~7.8.2",
@@ -52,11 +51,13 @@
     "webpack": "^5.112.2",
     "webpack-merge": "^6.0.1",
     "braces": "file:vendor/braces",
-    "minimatch": "file:vendor/minimatch"
+    "minimatch": "file:vendor/minimatch",
+    "picomatch": "file:vendor/picomatch"
   },
   "overrides": {
     "braces": "$braces",
     "compression": "^1.8.2",
-    "minimatch": "$minimatch"
+    "minimatch": "$minimatch",
+    "picomatch": "$picomatch"
   }
 }
