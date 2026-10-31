@@ -10,8 +10,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const token = authService.getToken();
-  const isApiUrl = !!environment.apiUrl && req.url.startsWith(environment.apiUrl);
-  const isAuthRequest = req.url.startsWith(`${environment.apiUrl}/auth/`);
+  const apiBase = environment.apiUrl.replace(/\/+$/, '');
+  const isApiUrl = !!apiBase && (req.url === apiBase
+    || req.url.startsWith(`${apiBase}/`)
+    || req.url.startsWith(`${apiBase}?`));
+  const isAuthRequest = isApiUrl && req.url.startsWith(`${apiBase}/auth/`);
 
   if (token && isApiUrl && !isAuthRequest) {
     req = req.clone({

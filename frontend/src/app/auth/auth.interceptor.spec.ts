@@ -50,6 +50,18 @@ describe('authInterceptor', () => {
     httpMock.match(() => true).forEach(req => req.flush({}));
   });
 
+  it('does not leak tokens or log out for a URL that only shares the API prefix', () => {
+    const lookalikeUrl = `${environment.apiUrl}.attacker.test/baccarat/state`;
+    http.get(lookalikeUrl).subscribe({ error: () => undefined });
+
+    const req = httpMock.expectOne(lookalikeUrl);
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({}, { status: 401, statusText: 'Unauthorized' });
+
+    expect(authService.getToken()).toBe('jwt-token');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('logs out and redirects to the login page when the API answers 401', () => {
     let failed = false;
     http.get(`${environment.apiUrl}/baccarat/state`).subscribe({ error: () => failed = true });
