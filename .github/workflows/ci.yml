@@ -1,4 +1,7 @@
 name: CI + Tools
+env:
+  NG_CLI_ANALYTICS: 'false'
+  DO_NOT_TRACK: '1'
 on:
   push:
     branches: [ "main", "master" ]
@@ -158,7 +161,7 @@ jobs:
         run: npm run test:dependency-guards
 
       - name: Dependency audit
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=low
 
       - name: Create .env from GitHub Secrets
         working-directory: ${{ needs.detect-paths.outputs.FRONT_DIR }}

@@ -12,7 +12,7 @@
     "postinstall": "npm run build",
     "watch": "ng build --watch --configuration=development",
     "test": "ng test",
-    "test:dependency-guards": "node --test vendor/braces/test.cjs"
+    "test:dependency-guards": "node --test vendor/braces/test.cjs vendor/minimatch/test.cjs"
   },
   "private": true,
   "homepage": "https://www.baccaratio.aporkolab.com",
@@ -51,10 +51,12 @@
     "typescript": "~6.0.3",
     "webpack": "^5.112.2",
     "webpack-merge": "^6.0.1",
-    "braces": "file:vendor/braces"
+    "braces": "file:vendor/braces",
+    "minimatch": "file:vendor/minimatch"
   },
   "overrides": {
     "braces": "$braces",
-    "compression": "^1.8.2"
+    "compression": "^1.8.2",
+    "minimatch": "$minimatch"
   }
 }
