@@ -2,7 +2,9 @@
   <div class="player-info">
     <span class="player-name">{{ playerName }}</span>
     <span class="player-balance">Balance: {{ balance | number }}</span>
-    <span *ngIf="currentBetAmount > 0" class="current-bet"> | Bet: {{ currentBetAmount | number }}</span>
+    @if (currentBetAmount > 0) {
+      <span class="current-bet"> | Bet: {{ currentBetAmount | number }}</span>
+    }
   </div>
   <div class="actions">
     <button class="action-button" (click)="resetGame()">Reset Game</button>

@@ -1,23 +1,12 @@
 package com.prokey.baccaratio.controller.dto;
 
-public class AuthRequest {
-    private String username;
-    private String password;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-    // Getters and setters
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-}
+/**
+ * Login credentials.
+ */
+public record AuthRequest(
+        @NotBlank @Size(max = 50) String username,
+        @NotBlank @Size(max = 72) String password // BCrypt only uses the first 72 bytes
+) {}

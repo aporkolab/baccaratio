@@ -10,25 +10,33 @@
 
 ## Overview
 
-Baccaratio is a comprehensive web application that combines a backend built with Spring Boot 3.2.4 and a front-end developed using Angular 20.2.1. The primary purpose of Baccaratio is to provide a simulated environment for the popular casino game Baccarat, allowing players to place bets, participate in rounds, and monitor their chip balances. The backend is RESTful, ensuring seamless integration with various front-end applications.
+Baccaratio is a comprehensive web application that combines a backend built with Spring Boot 4.1 and a front-end developed using Angular 22. The primary purpose of Baccaratio is to provide a simulated environment for the popular casino game Baccarat, allowing players to place bets, participate in rounds, and monitor their chip balances. The backend is RESTful and stateless (JWT authentication), ensuring seamless integration with various front-end applications.
+
+### Tech stack
+
+| Part | Versions |
+| --- | --- |
+| Backend | Java 21, Spring Boot 4.1.2 (Spring Framework 7, Spring Security 7, Hibernate 7), H2 (in-memory), jjwt 0.13, springdoc-openapi 3.2 |
+| Frontend | Angular 22.2, TypeScript 6.0, RxJS 7.8, Karma + Jasmine |
+| Tooling | Maven 3.9 (wrapper included), Node.js 24, npm 11 |
 
 ## Setup
 
 ### Prerequisites
 
-- Java JDK 11 or later (the backend was written in Java 17)
-- Maven 3.9.6.
-- Angular 20.2.1 (upgrade from 17.3.1)
+- Java JDK 21 or later
+- Maven 3.9+ (or the bundled Maven wrapper: `./mvnw`)
+- Node.js 24 (version 24.15.0 or later within the 24.x line) and npm
 
 ### Setup the backend
 
 1. Clone the repository.
-2. Navigate to the project directory.
+2. Navigate to the `backend` directory.
 
-To build the project, execute the following Maven command:
+To build the project and run the unit and integration tests, execute the following Maven command:
 
 ```shell
-mvn clean install
+mvn clean verify
 ```
 
 3. Run the application using Maven:
@@ -37,10 +45,22 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-The service will start and be available at `http://localhost:8080`.
+The service will start and be available at `http://localhost:8080`. The interactive API documentation is served at `http://localhost:8080/swagger-ui.html`.
 
-Ensure JDK 17 and Maven are installed and properly configured in your development environment.
+To build a deployable archive without running the tests, use `mvn -DskipTests package`; the executable `target/baccaratio-1.0.0.war` can be started with `java -jar`.
 
+#### Configuration (environment variables)
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `JWT_SECRET` | *(random key per start)* | Base64 encoded HMAC key of at least 256 bits used to sign the JWTs, e.g. generated with `openssl rand -base64 32`. Set it in production; without it every restart invalidates the issued tokens. |
+| `JWT_EXPIRATION` | `PT10H` | Token lifetime as an ISO-8601 duration. |
+| `CORS_ORIGIN` | *(empty)* | Comma separated list of additional allowed origins. The production domains and `http://localhost:4200` are always allowed. |
+| `H2_CONSOLE_ENABLED` | `false` | Enables the H2 web console at `/h2-console`. Only enable it for local development: the console executes arbitrary SQL. |
+| `JPA_SHOW_SQL` | `false` | Logs the executed SQL statements. |
+| `PORT` | `8080` | HTTP port (used by the `Procfile`, pass it as `-Dserver.port`). |
+
+The data is stored in an in-memory H2 database, so users and balances are reset whenever the backend restarts.
 
 ### Setup the frontend
 
@@ -71,16 +91,33 @@ Follow these steps to set up and run the Angular frontend for Baccaratio:
     
     `npm install` 
     
-    This command will install all the necessary dependencies for the Angular frontend.
+    This command will install all the necessary dependencies for the Angular frontend (the `postinstall` script also produces a production build).
     
 4.  **Run the Application**:
-    
-    `npm start` 
-    
-    This command compiles the application and starts a development server. After successful compilation, the frontend will be available at `http://localhost:4200`.
-    
-5.  **Access the Application**: Open your web browser and navigate to `http://localhost:4200` to access the Baccaratio frontend.
-    
+
+    - Development server with live reload, talking to the backend at `http://localhost:8080`:
+
+      `npx ng serve`
+
+      The frontend will be available at `http://localhost:4200`.
+
+    - Production build served statically (this is what `npm start` does, e.g. on Heroku):
+
+      `npm run build && npm start`
+
+5.  **Access the Application**: Open your web browser and navigate to `http://localhost:4200` (development server) or the address printed by `serve`.
+
+#### Configuration
+
+The production build reads the backend URL from the `API_URL` variable, either from a `frontend/.env` file (`API_URL=https://api.example.com`) or from the environment of the build. Without it the build falls back to `https://api.baccaratio.porkolab.hu`. Only `API_URL` is injected into the bundle.
+
+#### Tests
+
+```shell
+npm test -- --watch=false --browsers=ChromeHeadless   # unit tests (Karma + Jasmine)
+npm run test:dependency-guards                         # regression tests of the vendored braces fork
+npm audit --audit-level=high                           # dependency audit, as run in CI
+```
 
 #### Additional Information
 
@@ -90,29 +127,64 @@ Follow these steps to set up and run the Angular frontend for Baccaratio:
 
 By following these installation instructions, you can set up and run the Angular frontend for Baccaratio on your local development environment.
 
+### Continuous Integration
+
+The `CI + Tools` GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests:
+
+- **Backend (Java/Maven)**: `mvn -B verify` (unit tests with Surefire, `*IT` integration tests with Failsafe).
+- **Frontend (CI)**: `npm ci`, the dependency guard tests, `npm audit --audit-level=high`, the production build and the Karma tests in headless Chrome.
+
+Dependabot keeps the npm, Maven and GitHub Actions dependencies up to date.
+
 ## API Endpoints
 
 #### Base URL
 
-All URLs referenced in the documentation have the base path `/baccarat`.
+The authentication endpoints live under `/auth`, the game endpoints under `/baccarat`. The OpenAPI description is available at `/v3/api-docs` and `/swagger-ui.html`.
+
+#### Authentication
+
+All `/baccarat` endpoints require a JWT in the `Authorization: Bearer <token>` header. Requests without a valid (or with an expired) token are answered with `401 Unauthorized`.
+
+-   **Register**: `POST /auth/register` with `{"username": "...", "password": "..."}`
+    -   Username: 3-50 characters (letters, digits, `.`, `_`, `-`); password: 6-72 characters.
+    -   **Success**: `200` with `{"id": 1, "username": "..."}`
+    -   **Error**: `400` for invalid input or an already taken username.
+-   **Login**: `POST /auth/login` with `{"username": "...", "password": "..."}`
+    -   **Success**: `200` with `{"token": "<jwt>"}`
+    -   **Error**: `401` with the message `Invalid username or password.`
 
 #### Cross-Origin Resource Sharing (CORS)
 
-The API supports cross-origin requests from `http://localhost:4200`.
+The API supports cross-origin requests from the production frontend domains and `http://localhost:4200`; further origins can be added with `CORS_ORIGIN`.
+
+#### Game state
+
+Every user has one table on the server; it is identified by the authenticated user, not by a cookie or session. New players start with 1000 chips. The game responses share this format:
+
+```json
+{
+  "result": "Player",
+  "playerCards": [{ "suit": "Hearts", "value": "9", "points": 9 }],
+  "bankerCards": [{ "suit": "Clubs", "value": "K", "points": 0 }],
+  "playerChips": 1100,
+  "message": "Round played successfully."
+}
+```
 
 ### Place a Bet
 
 -   **Endpoint**: `/baccarat/bet/{type}/{amount}`
 -   **Method**: `POST`
 -   **URL Params**:
-    -   `type=[string]` (Options: "player", "banker", "tie")
-    -   `amount=[integer]` (The amount of chips to bet)
+    -   `type=[string]` (case-insensitive; options: `player`, `banker`, `tie`, `playerPair`, `bankerPair`, `eitherPair`, `perfectPairOne`)
+    -   `amount=[integer]` (The amount of chips to bet, positive and not more than the balance)
 -   **Success Response**:
     -   **Code**: 200
-    -   **Content**: `"Bet placed on: {type} with amount: {amount}"`
+    -   **Content**: `{"message": "Bet placed on PLAYER with amount 100", "chips": 1000}`
 -   **Error Response**:
     -   **Code**: 400 BAD REQUEST
-    -   **Content**: `"Invalid bet type."` or `"Insufficient chips."`
+    -   **Content**: error object with the message `"Invalid bet type."`, `"Bet amount must be positive."` or `"Insufficient chips for this bet."`
 
 ### Play Round
 
@@ -120,17 +192,41 @@ The API supports cross-origin requests from `http://localhost:4200`.
 -   **Method**: `GET`
 -   **Success Response**:
     -   **Code**: 200
-    -   **Content**: `"Round result: {result}. Your bet was: {betType}. Remaining chips: {chips}."`
+    -   **Content**: game response; `result` is `Player`, `Banker` or `Tie` (with ` You have run out of chips.` appended when the balance reaches zero).
+-   **Error Response**:
+    -   **Code**: 409 CONFLICT when no bet has been placed or the balance no longer covers the bet.
 -   **Notes**:
-    -   Initiates a round of Baccarat based on the current bet.
+    -   Initiates a round of Baccarat based on the current bet. The bet stays in place for the following rounds until a new bet is placed.
 
-### Get Last Result
+### Get Game State
 
--   **Endpoint**: `/baccarat/result`
+-   **Endpoint**: `/baccarat/state`
 -   **Method**: `GET`
 -   **Success Response**:
     -   **Code**: 200
-    -   **Content**: `"Last result: {lastResult}. Your bet was: {betType}. Remaining chips: {chips}."`
+    -   **Content**: game response with the last result, the cards of the last round and the current balance.
+
+### Reset Game
+
+-   **Endpoint**: `/baccarat/reset`
+-   **Method**: `POST`
+-   **Success Response**:
+    -   **Code**: 200
+    -   **Content**: game response with `"result": "Game reset"` and the balance restored to 1000 chips.
+
+### Error format
+
+Errors are returned as JSON:
+
+```json
+{
+  "timestamp": "2026-10-31T12:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Insufficient chips for this bet.",
+  "path": "/baccarat/bet/player/5000"
+}
+```
 
 ## Gameplay Mechanics
 
@@ -138,7 +234,7 @@ In the game of Baccarat, players engage in the following gameplay mechanics:
 
 1.  **Betting Options**:
     
-    -   Players can place bets on three outcomes: "player," "banker," or a "tie." Additionally, special betting options may be available for more diverse gameplay.
+    -   Players can place bets on three outcomes: "player," "banker," or a "tie." Additionally, the pair side bets "player pair" (11:1), "banker pair" (11:1), "either pair" (5:1) and "perfect pair" (25:1) are available.
 2.  **Card Dealing**:
     
     -   After players place their bets, the virtual "croupier" initiates the card dealing process.
@@ -149,7 +245,7 @@ In the game of Baccarat, players engage in the following gameplay mechanics:
     -   The goal is to achieve a total as close to 9 as possible without exceeding it.
 4.  **Result Display**:
     
-    -   After the cards are dealt, the winning outcome is displayed to the player through an alert within a 5-second window.
+    -   The cards are dealt one by one on the table, and the winning outcome is displayed to the player as a notification once the round is over.
 5.  **Payouts**:
     
     -   Winning bets are collected at the end of the round and added to the player's chip count.
@@ -159,7 +255,7 @@ By following these gameplay mechanics, players can enjoy the excitement and anti
 
 ## Player Management
 
-Players start with an initial chip count. Bets are deducted at the start of a round, and winnings are added to the player's chip count at the end of the round, according to the outcome and type of bet placed. The maximum bet that one can bet is 100 dollars.
+Players start with 1000 chips. Bets are deducted at the start of a round, and winnings are added to the player's chip count at the end of the round, according to the outcome and type of bet placed. A bet can be at most the player's current balance; a push (tie on a player or banker bet) returns the stake. The balance can be reset to 1000 chips at any time.
 
 ### Baccarat Rules
 
@@ -174,7 +270,7 @@ Baccarat is a popular card game played at casinos worldwide. The game is simple 
     -   10s and face cards (King, Queen, Jack) count as 0 points.
 3.  **Game Setup**:
     
-    -   Baccarat is typically played with 6 to 8 decks of cards.
+    -   Baccarat is typically played with 6 to 8 decks of cards; Baccaratio deals from a single 52-card deck that is reshuffled when fewer than 15 cards remain.
     -   Each round begins with players placing their bets on either the "Player," "Banker," or "Tie" outcome.
 4.  **Dealing Cards**:
     
@@ -187,7 +283,7 @@ Baccarat is a popular card game played at casinos worldwide. The game is simple 
         -   If the Player stands, the Banker draws a card if their total is 5 or less.
         -   If the Banker's total is 2 or less, they always draw a card.
         -   If the Banker's total is 3, they draw a third card unless the Player's third card is an 8.
-        -   If the Banker's total is 4, they draw a third card unless the Player's third card is a 0, 1, 8, or 9.
+        -   If the Banker's total is 4, they draw a third card if the Player's third card is a 2, 3, 4, 5, 6, or 7.
         -   If the Banker's total is 5, they draw a third card if the Player's third card is a 4, 5, 6, or 7.
         -   If the Banker's total is 6, they draw a third card if the Player's third card is a 6 or 7.
 6.  **Determining the Winner**:
@@ -197,8 +293,8 @@ Baccarat is a popular card game played at casinos worldwide. The game is simple 
 7.  **Payouts**:
     
     -   Bets on the "Player" hand win even money (1:1).
-    -   Bets on the "Banker" hand win even money, but a 5% commission is typically charged on winning bets.
-    -   Bets on a "Tie" typically offer higher payouts (usually 8:1 or 9:1), but it's less common due to the higher house edge.
+    -   Bets on the "Banker" hand win even money minus a 5% commission (0.95:1, rounded down to whole chips).
+    -   Bets on a "Tie" pay 8:1.
 
 These are the fundamental rules of Baccarat, providing players with an enjoyable and straightforward gaming experience.
 
@@ -210,13 +306,13 @@ The Baccarat Game API is continuously evolving to meet the growing demands of pl
 
 Enhancing the responsiveness of the API for mobile devices, ensuring optimal user experience across different screen sizes.
 
-### Continuous Integration and Deployment (CI/CD)
+### Continuous Deployment
 
-Implementation of CI/CD pipelines to automate the testing, building, and deployment processes, ensuring the reliability and efficiency of updates to the API.
+The CI pipeline already builds and tests every change; automated deployment of the backend and frontend is planned.
 
-### Enhanced Security Measures
+### Persistent Storage
 
-Integration of additional security measures such as JWT authentication and request validation to safeguard player information and prevent unauthorized access.
+Replacing the in-memory H2 database with a persistent database so that accounts and balances survive restarts.
 
 ### Multiplayer Support
 

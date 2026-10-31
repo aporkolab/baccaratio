@@ -52,4 +52,22 @@ describe('AuthService', () => {
   it('isLoggedIn should return false when token does not exist', () => {
     expect(service.isLoggedIn()).toBeFalse();
   });
+
+  describe('token expiry', () => {
+    const tokenWithExp = (expSeconds: number) => {
+      const encode = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '');
+      return `${encode({ alg: 'HS256' })}.${encode({ sub: 'alice', exp: expSeconds })}.signature`;
+    };
+
+    it('treats an unexpired JWT as logged in', () => {
+      localStorage.setItem('baccaratio_token', tokenWithExp(Math.floor(Date.now() / 1000) + 3600));
+      expect(service.isLoggedIn()).toBeTrue();
+    });
+
+    it('treats an expired JWT as logged out and removes it', () => {
+      localStorage.setItem('baccaratio_token', tokenWithExp(Math.floor(Date.now() / 1000) - 60));
+      expect(service.isLoggedIn()).toBeFalse();
+      expect(localStorage.getItem('baccaratio_token')).toBeNull();
+    });
+  });
 });

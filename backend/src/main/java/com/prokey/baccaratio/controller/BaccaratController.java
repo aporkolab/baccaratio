@@ -2,13 +2,13 @@ package com.prokey.baccaratio.controller;
 
 import com.prokey.baccaratio.controller.dto.BetResponse;
 import com.prokey.baccaratio.controller.dto.GameResponse;
-import com.prokey.baccaratio.model.Game;
-import com.prokey.baccaratio.model.Player;
+import com.prokey.baccaratio.model.GameSnapshot;
 import com.prokey.baccaratio.service.BaccaratService;
-import com.prokey.baccaratio.service.BaccaratService.BetType;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 
@@ -21,86 +21,28 @@ public class BaccaratController {
         this.baccaratService = baccaratService;
     }
 
-    private Game getGame(HttpSession session, Principal principal) {
-        String username = principal.getName();
-        return baccaratService.getGameForSession(session.getId(), username);
-    }
-
     @PostMapping("/bet/{type}/{amount}")
-    public ResponseEntity<BetResponse> placeBet(@PathVariable String type, @PathVariable int amount, HttpSession session, Principal principal) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Bet amount must be positive.");
-        }
-        if (!baccaratService.isValidBetType(type)) {
-            throw new IllegalArgumentException("Invalid bet type.");
-        }
-
-        Game game = getGame(session, principal);
-        Player player = game.getPlayer();
-
-        if (player.getChips() < amount) {
-            throw new IllegalArgumentException("Insufficient chips for this bet.");
-        }
-
-        BetType betType = BetType.valueOf(type.toUpperCase());
-        game.placeBet(betType, amount);
-
-        String message = String.format("Bet placed on %s with amount %d", type, amount);
-        BetResponse response = new BetResponse(message, player.getChips());
-        return ResponseEntity.ok(response);
+    public BetResponse placeBet(@PathVariable String type, @PathVariable int amount, Principal principal) {
+        GameSnapshot game = baccaratService.placeBet(principal.getName(), type, amount);
+        String message = String.format("Bet placed on %s with amount %d", game.betType(), game.betAmount());
+        return new BetResponse(message, game.playerChips());
     }
 
     @GetMapping("/play")
-    public ResponseEntity<GameResponse> play(HttpSession session, Principal principal) {
-        Game game = getGame(session, principal);
-        String result = game.playRound();
-
-        baccaratService.savePlayerState(game.getPlayer());
-
-        GameResponse response = new GameResponse(
-            result,
-            game.getPlayerCards(),
-            game.getBankerCards(),
-            game.getPlayer().getChips(),
-            "Round played successfully."
-        );
-
-        return ResponseEntity.ok(response);
+    public GameResponse play(Principal principal) {
+        GameSnapshot game = baccaratService.playRound(principal.getName());
+        return GameResponse.of(game, game.lastResult(), "Round played successfully.");
     }
 
     @GetMapping("/state")
-    public ResponseEntity<GameResponse> getGameState(HttpSession session, Principal principal) {
-        Game game = getGame(session, principal);
-
-        GameResponse response = new GameResponse(
-            game.getLastResult(),
-            game.getPlayerCards(),
-            game.getBankerCards(),
-            game.getPlayer().getChips(),
-            "Current game state."
-        );
-
-        return ResponseEntity.ok(response);
+    public GameResponse getGameState(Principal principal) {
+        GameSnapshot game = baccaratService.getGame(principal.getName());
+        return GameResponse.of(game, game.lastResult(), "Current game state.");
     }
 
     @PostMapping("/reset")
-    public ResponseEntity<GameResponse> resetGame(HttpSession session, Principal principal) {
-        Game game = getGame(session, principal);
-        Player player = game.getPlayer();
-        player.setChips(1000); // Reset chips to default
-        baccaratService.savePlayerState(player);
-
-        baccaratService.endGameForSession(session.getId());
-        Game newGame = getGame(session, principal);
-
-        GameResponse response = new GameResponse(
-            "Game reset",
-            newGame.getPlayerCards(),
-            newGame.getBankerCards(),
-            newGame.getPlayer().getChips(),
-            "Game has been reset."
-        );
-
-        return ResponseEntity.ok(response);
+    public GameResponse resetGame(Principal principal) {
+        GameSnapshot game = baccaratService.resetGame(principal.getName());
+        return GameResponse.of(game, "Game reset", "Game has been reset.");
     }
 }

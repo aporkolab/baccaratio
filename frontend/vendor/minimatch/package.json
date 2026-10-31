@@ -1,0 +1,43 @@
+{
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
+  "name": "@aporkolab/minimatch-hardened",
+  "description": "a glob matcher in javascript",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:isaacs/minimatch"
+  },
+  "main": "./index.cjs",
+  "types": "./dist/commonjs/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "index.cjs",
+    "LICENSE.md"
+  ],
+  "engines": {
+    "node": "18 || 20 || >=22"
+  },
+  "funding": {
+    "url": "https://github.com/sponsors/isaacs"
+  },
+  "license": "BlueOak-1.0.0",
+  "type": "module",
+  "module": "./dist/esm/index.js",
+  "dependencies": {
+    "brace-expansion": "^5.0.8"
+  },
+  "private": true
+}

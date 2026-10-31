@@ -1,61 +1,53 @@
-import { ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DecimalPipe } from '@angular/common';
+import { Router } from '@angular/router';
 import { GameService } from '../game.service';
 import { AuthService } from 'src/app/auth/auth.service';
-import { Subscription } from 'rxjs';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ToastService } from '../../service/toast.service';
 
 @Component({
   selector: 'app-player-status',
   templateUrl: './player-status.component.html',
   styleUrls: ['./player-status.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [DecimalPipe],
 })
-export class PlayerStatusComponent implements OnInit, OnDestroy {
-  balance: number = 1000;
-  playerName: string = 'Player';
-  currentBetAmount: number = 0;
+export class PlayerStatusComponent implements OnInit {
+  private readonly gameService = inject(GameService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly toastr = inject(ToastService);
 
-  private balanceSubscription: Subscription | undefined;
-
-  constructor(
-    private gameService: GameService,
-    private authService: AuthService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) { }
+  balance = 1000;
+  playerName = 'Player';
+  currentBetAmount = 0;
 
   ngOnInit(): void {
-    // Fetch initial game state which includes player info
-    this.gameService.getGameState().subscribe(state => {
-        this.balance = state.playerChips;
-        // The player name will be handled differently, perhaps from a user profile service later.
-        // For now, we can get it from the principal on the backend, but the GameState doesn't include it.
-        // Let's keep it simple.
-    });
+    // Fetch the initial game state; GameService pushes the balance into balance$
+    this.gameService.getGameState()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: (error: Error) => this.toastr.error(error.message, 'Error') });
 
-    this.balanceSubscription = this.gameService.balance$.subscribe(newBalance => {
-      this.balance = newBalance;
-      this.cdr.detectChanges();
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.balanceSubscription?.unsubscribe();
+    this.gameService.balance$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(newBalance => {
+        this.balance = newBalance;
+        this.cdr.detectChanges();
+      });
   }
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   resetGame(): void {
-    this.gameService.resetGame().subscribe(() => {
-      // The game service observable will update the balance.
-      // A toastr message could be added here later to confirm.
-      console.log('Game reset requested.');
+    this.gameService.resetGame().subscribe({
+      next: () => this.toastr.info('Your balance has been reset.', 'Game Reset'),
+      error: (error: Error) => this.toastr.error(error.message, 'Error'),
     });
   }
 
