@@ -1,6 +1,7 @@
 package com.prokey.baccaratio.controller;
 
 import com.jayway.jsonpath.JsonPath;
+import com.prokey.baccaratio.repository.PlayerRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,9 +11,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,6 +37,9 @@ class BaccaratControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private PlayerRepository playerRepository;
 
     private static String uniqueUsername() {
         return "it_" + UUID.randomUUID().toString().substring(0, 8);
@@ -92,6 +104,37 @@ class BaccaratControllerIT {
                 .andExpect(jsonPath("$.result").value("Game reset"))
                 .andExpect(jsonPath("$.playerChips").value(1000))
                 .andExpect(jsonPath("$.playerCards.length()").value(0));
+    }
+
+    @Test
+    void concurrentFirstRequests_CreateExactlyOneCommittedPlayer() throws Exception {
+        String username = uniqueUsername();
+        register(username);
+        String token = login(username);
+        CountDownLatch ready = new CountDownLatch(8);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            List<Future<?>> requests = new ArrayList<>();
+            for (int index = 0; index < 8; index++) {
+                requests.add(executor.submit(() -> {
+                    ready.countDown();
+                    assertTrue(start.await(5, TimeUnit.SECONDS));
+                    mockMvc.perform(get("/baccarat/state").header(HttpHeaders.AUTHORIZATION, token))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.playerChips").value(1000))
+                            .andExpect(jsonPath("$.playerCards.length()").value(0));
+                    return null;
+                }));
+            }
+            try {
+                assertTrue(ready.await(5, TimeUnit.SECONDS));
+            } finally {
+                start.countDown();
+            }
+            for (Future<?> request : requests) request.get(10, TimeUnit.SECONDS);
+        }
+        assertEquals(1, playerRepository.findAll().stream()
+                .filter(player -> player.getName().equals(username)).count());
     }
 
     @Test

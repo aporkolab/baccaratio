@@ -13,3 +13,6 @@ The CJS entry also exposes the callable form used by pre-v5 callers.
 
 Replace this override once all callers support upstream minimatch 11 or a fixed
 compatible release. Keep the security and compatibility regression tests.
+
+Unused parser assignments reported by CodeQL have also been removed from both
+builds; this does not change matching behavior.

@@ -427,7 +427,6 @@ class AST {
                     ast.#emptyExt = true;
                 }
                 part.push(acc);
-                acc = '';
                 ast.push(...parts, part);
                 return i;
             }

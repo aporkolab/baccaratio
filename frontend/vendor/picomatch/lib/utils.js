@@ -3,7 +3,6 @@
 
 const {
   REGEX_BACKSLASH,
-  REGEX_REMOVE_BACKSLASH,
   REGEX_SPECIAL_CHARS,
   REGEX_SPECIAL_CHARS_GLOBAL
 } = require('./constants');
@@ -28,9 +27,28 @@ exports.isWindows = () => {
 };
 
 exports.removeBackslashes = str => {
-  return str.replace(REGEX_REMOVE_BACKSLASH, match => {
-    return match === '\\' ? '' : match;
-  });
+  const isLineTerminator = char => char === '\n' || char === '\r' || char === '\u2028' || char === '\u2029';
+  // Cache the end of each possible bracket match. Re-scanning from every '['
+  // makes malformed bracket runs quadratic. Zero means no matching end.
+  const bracketEnds = new Uint32Array(str.length + 1);
+  for (let index = str.length - 1; index >= 0; index--) {
+    if (str[index] !== '\\' && str[index + 1] === ']') {
+      bracketEnds[index] = index + 1;
+    } else if (!isLineTerminator(str[index])) {
+      bracketEnds[index] = bracketEnds[index + 1];
+    }
+  }
+  const output = [];
+  for (let index = 0; index < str.length; index++) {
+    if (str[index] === '[' && bracketEnds[index + 1] !== 0) {
+      const end = bracketEnds[index + 1];
+      output.push(str.slice(index, end + 1));
+      index = end;
+    } else if (str[index] !== '\\' || index + 1 === str.length || isLineTerminator(str[index + 1])) {
+      output.push(str[index]);
+    }
+  }
+  return output.join('');
 };
 
 exports.escapeLast = (input, char, lastIdx) => {

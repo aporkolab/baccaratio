@@ -160,6 +160,10 @@ public class Game {
     }
 
     // Getters for state
+    public synchronized GameSnapshot snapshot() {
+        return new GameSnapshot(player.getChips(), betType, betAmount, lastResult, playerCards, bankerCards);
+    }
+
     public Player getPlayer() { return player; }
     public synchronized String getLastResult() { return lastResult; }
     public synchronized BetType getBetType() { return betType; }

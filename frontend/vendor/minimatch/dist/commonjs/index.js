@@ -914,7 +914,7 @@ class Minimatch {
         // *, *.*, and *.<ext>  Add a fast check method for those.
         let m;
         let fastTest = null;
-        if ((m = pattern.match(starRE))) {
+        if (starRE.test(pattern)) {
             fastTest = options.dot ? starTestDot : starTest;
         }
         else if ((m = pattern.match(starDotExtRE))) {
@@ -933,10 +933,10 @@ class Minimatch {
                 : options.dot ? qmarksTestDot
                     : qmarksTest)(m);
         }
-        else if ((m = pattern.match(starDotStarRE))) {
+        else if (starDotStarRE.test(pattern)) {
             fastTest = options.dot ? starDotStarTestDot : starDotStarTest;
         }
-        else if ((m = pattern.match(dotStarRE))) {
+        else if (dotStarRE.test(pattern)) {
             fastTest = dotStarTest;
         }
         const re = ast_js_1.AST.fromGlob(pattern, this.options).toMMPattern();
