@@ -1,7 +1,7 @@
-import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Output, inject } from '@angular/core';
 import { GameService } from '../game.service';
 import { firstValueFrom } from 'rxjs';
-import { ToastService, ToastOptions } from '../../service/toast.service';
+import { ToastService } from '../../service/toast.service';
 import { Card } from 'src/app/model/card';
 
 interface Chip {
@@ -21,8 +21,20 @@ interface BetOption {
   imports: [],
 })
 export class BetPanelComponent {
-  private gameService = inject(GameService);
-  private toastr = inject(ToastService);
+  private readonly gameService = inject(GameService);
+  private readonly toastr = inject(ToastService);
+
+  /** Pending card deals of the running animation; restarted by every new round. */
+  private readonly dealTimers = new Set<ReturnType<typeof setTimeout>>();
+  /** Pending round summaries. */
+  private readonly summaryTimers = new Set<ReturnType<typeof setTimeout>>();
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.clearTimers(this.dealTimers);
+      this.clearTimers(this.summaryTimers);
+    });
+  }
 
   chips: Chip[] = [
     { value: 1, label: '1' },
@@ -86,13 +98,8 @@ export class BetPanelComponent {
 
     this.loading = true;
     try {
-      await firstValueFrom(
-        this.gameService.placeBet(betType, this.currentBetAmount),
-      );
-      this.toastr.success(
-        `Bet of ${this.currentBetAmount} on ${betType.toUpperCase()} accepted!`,
-        'Bet Placed',
-      );
+      await firstValueFrom(this.gameService.placeBet(betType, this.currentBetAmount));
+      this.toastr.success(`Bet of ${this.currentBetAmount} on ${betType.toUpperCase()} accepted!`, 'Bet Placed');
       this.betPlaced.emit({ type: betType, amount: this.currentBetAmount });
 
       const gameResponse = await firstValueFrom(this.gameService.playGame());
@@ -102,55 +109,45 @@ export class BetPanelComponent {
         result: gameResponse.result,
       });
 
-      setTimeout(() => {
+      this.schedule(this.summaryTimers, () => {
         this.currentBetAmount = 0;
         this.currentBetAmountChanged.emit(this.currentBetAmount);
         this.betHistory = [];
         // The game result is shown visually, a toast for it might be too much.
-        this.toastr.info(
-          `Round finished. Winner: ${gameResponse.result}`,
-          'Round Over',
-        );
+        this.toastr.info(`Round finished. Winner: ${gameResponse.result}`, 'Round Over');
       }, 7000);
 
       this.animateCards(gameResponse.playerCards, gameResponse.bankerCards);
-      this.gameService.getPlayer().subscribe((updatedPlayer) => {
-        this.gameService.updateBalance(updatedPlayer.chips);
-      });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error during bet or game play:', error);
-      this.toastr.error(
-        error.message || 'An error occurred during the bet or game.',
-        'Error',
-      );
+      const message = error instanceof Error && error.message ? error.message : 'An error occurred during the bet or game.';
+      this.toastr.error(message, 'Error');
     } finally {
       this.loading = false;
     }
   }
 
-  animateCards(playerCards: Card[], bankerCards: Card[]) {
-    this.gameService.updateCards([], []); // Töröljük az aktuális kártyákat
-    let playerIndex = 0;
-    let bankerIndex = 0;
+  animateCards(playerCards: Card[], bankerCards: Card[]): void {
+    this.clearTimers(this.dealTimers);
+    this.gameService.updateCards([], []); // Clear the current cards
+    // Deal the player's cards one by one, then the banker's, one second apart
+    const deals = [
+      ...playerCards.map(card => () => this.gameService.updatePlayerCards(card)),
+      ...bankerCards.map(card => () => this.gameService.updateBankerCards(card)),
+    ];
+    deals.forEach((deal, index) => this.schedule(this.dealTimers, deal, (index + 1) * 1000));
+  }
 
-    const interval = setInterval(() => {
-      // Játékos kártyák beúsztatása egyesével
-      if (playerIndex < playerCards.length) {
-        this.gameService.updatePlayerCards(playerCards[playerIndex]);
-        playerIndex++;
-      } else if (bankerIndex < bankerCards.length) {
-        // Bankár kártyák beúsztatása a játékos kártyák után
-        this.gameService.updateBankerCards(bankerCards[bankerIndex]);
-        bankerIndex++;
-      }
+  private schedule(timers: Set<ReturnType<typeof setTimeout>>, action: () => void, delayMs: number): void {
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      action();
+    }, delayMs);
+    timers.add(timer);
+  }
 
-      // Ha minden kártya kiosztásra került, leállítjuk az intervallumot
-      if (
-        playerIndex === playerCards.length &&
-        bankerIndex === bankerCards.length
-      ) {
-        clearInterval(interval);
-      }
-    }, 1000); // 1 másodperces intervallum, hogy a kártyák egymás után jelenjenek meg
+  private clearTimers(timers: Set<ReturnType<typeof setTimeout>>): void {
+    timers.forEach(timer => clearTimeout(timer));
+    timers.clear();
   }
 }

@@ -1,15 +1,8 @@
-<app-player-status
-  (showAuthorModalEvent)="showModal = true"
-  (hideAuthorModalEvent)="showModal = false"
-></app-player-status>
+<app-player-status></app-player-status>
 
 <div class="betting-area">
   <app-bet-history></app-bet-history>
-  <app-bet-panel
-    (currentBetAmountChanged)="handleBetAmountChange($event)"
-    (showAuthorModalEvent)="showModal = true"
-    (hideAuthorModalEvent)="showModal = false"
-  ></app-bet-panel>
+  <app-bet-panel (currentBetAmountChanged)="handleBetAmountChange($event)"></app-bet-panel>
 </div>
 
 <div class="game-table-container">
@@ -21,7 +14,7 @@
   <div class="hands-wrapper">
     <div class="hand-container player-hand">
       <div class="hand">
-        @for (card of playerCards; track card) {
+        @for (card of playerCards; track $index) {
           <div class="card" [@cardAnimation]>
             <img
               [src]="getCardImage(card)"
@@ -39,7 +32,7 @@
 
     <div class="hand-container banker-hand">
       <div class="hand">
-        @for (card of bankerCards; track card) {
+        @for (card of bankerCards; track $index) {
           <div class="card" [@cardAnimation]>
             <img
               [src]="getCardImage(card)"
