@@ -41,6 +41,32 @@ updates:
       update-types:
       - minor
       - patch
+- package-ecosystem: maven
+  directory: /backend
+  schedule:
+    interval: monthly
+    time: 09:00
+    timezone: Europe/Budapest
+  open-pull-requests-limit: 3
+  labels:
+  - dependencies
+  commit-message:
+    prefix: build(deps)
+  groups:
+    security:
+      patterns:
+      - '*'
+      applies-to: security-updates
+    spring:
+      patterns:
+      - org.springframework.boot:*
+      - org.springdoc:*
+    tooling:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch
 - package-ecosystem: github-actions
   directory: /
   schedule:
