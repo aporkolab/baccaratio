@@ -1,4 +1,12 @@
-import { ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  Output,
+  inject,
+} from '@angular/core';
 import { GameService } from '../game.service';
 import { AuthService } from 'src/app/auth/auth.service';
 import { Subscription } from 'rxjs';
@@ -14,32 +22,32 @@ import { Router } from '@angular/router';
   imports: [CommonModule, FormsModule],
 })
 export class PlayerStatusComponent implements OnInit, OnDestroy {
+  private gameService = inject(GameService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
   balance: number = 1000;
   playerName: string = 'Player';
   currentBetAmount: number = 0;
 
   private balanceSubscription: Subscription | undefined;
 
-  constructor(
-    private gameService: GameService,
-    private authService: AuthService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) { }
-
   ngOnInit(): void {
     // Fetch initial game state which includes player info
-    this.gameService.getGameState().subscribe(state => {
-        this.balance = state.playerChips;
-        // The player name will be handled differently, perhaps from a user profile service later.
-        // For now, we can get it from the principal on the backend, but the GameState doesn't include it.
-        // Let's keep it simple.
+    this.gameService.getGameState().subscribe((state) => {
+      this.balance = state.playerChips;
+      // The player name will be handled differently, perhaps from a user profile service later.
+      // For now, we can get it from the principal on the backend, but the GameState doesn't include it.
+      // Let's keep it simple.
     });
 
-    this.balanceSubscription = this.gameService.balance$.subscribe(newBalance => {
-      this.balance = newBalance;
-      this.cdr.detectChanges();
-    });
+    this.balanceSubscription = this.gameService.balance$.subscribe(
+      (newBalance) => {
+        this.balance = newBalance;
+        this.cdr.detectChanges();
+      },
+    );
   }
 
   ngOnDestroy(): void {

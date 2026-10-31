@@ -1,9 +1,8 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { GameService } from '../game.service';
 import { firstValueFrom } from 'rxjs';
 import { ToastService, ToastOptions } from '../../service/toast.service';
 import { Card } from 'src/app/model/card';
-import { CommonModule } from '@angular/common';
 
 interface Chip {
   value: number;
@@ -19,9 +18,12 @@ interface BetOption {
   templateUrl: './bet-panel.component.html',
   styleUrls: ['./bet-panel.component.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
 })
 export class BetPanelComponent {
+  private gameService = inject(GameService);
+  private toastr = inject(ToastService);
+
   chips: Chip[] = [
     { value: 1, label: '1' },
     { value: 5, label: '5' },
@@ -50,7 +52,6 @@ export class BetPanelComponent {
     new EventEmitter();
 
   loading: boolean = false;
-  constructor(private gameService: GameService, private toastr: ToastService) { }
 
   selectChip(chip: Chip): void {
     this.selectedChip = chip;
@@ -85,8 +86,13 @@ export class BetPanelComponent {
 
     this.loading = true;
     try {
-      await firstValueFrom(this.gameService.placeBet(betType, this.currentBetAmount));
-      this.toastr.success(`Bet of ${this.currentBetAmount} on ${betType.toUpperCase()} accepted!`, 'Bet Placed');
+      await firstValueFrom(
+        this.gameService.placeBet(betType, this.currentBetAmount),
+      );
+      this.toastr.success(
+        `Bet of ${this.currentBetAmount} on ${betType.toUpperCase()} accepted!`,
+        'Bet Placed',
+      );
       this.betPlaced.emit({ type: betType, amount: this.currentBetAmount });
 
       const gameResponse = await firstValueFrom(this.gameService.playGame());
@@ -101,16 +107,22 @@ export class BetPanelComponent {
         this.currentBetAmountChanged.emit(this.currentBetAmount);
         this.betHistory = [];
         // The game result is shown visually, a toast for it might be too much.
-        this.toastr.info(`Round finished. Winner: ${gameResponse.result}`, 'Round Over');
+        this.toastr.info(
+          `Round finished. Winner: ${gameResponse.result}`,
+          'Round Over',
+        );
       }, 7000);
 
       this.animateCards(gameResponse.playerCards, gameResponse.bankerCards);
-      this.gameService.getPlayer().subscribe(updatedPlayer => {
+      this.gameService.getPlayer().subscribe((updatedPlayer) => {
         this.gameService.updateBalance(updatedPlayer.chips);
       });
     } catch (error: any) {
       console.error('Error during bet or game play:', error);
-      this.toastr.error(error.message || "An error occurred during the bet or game.", 'Error');
+      this.toastr.error(
+        error.message || 'An error occurred during the bet or game.',
+        'Error',
+      );
     } finally {
       this.loading = false;
     }
@@ -133,7 +145,10 @@ export class BetPanelComponent {
       }
 
       // Ha minden kártya kiosztásra került, leállítjuk az intervallumot
-      if (playerIndex === playerCards.length && bankerIndex === bankerCards.length) {
+      if (
+        playerIndex === playerCards.length &&
+        bankerIndex === bankerCards.length
+      ) {
         clearInterval(interval);
       }
     }, 1000); // 1 másodperces intervallum, hogy a kártyák egymás után jelenjenek meg

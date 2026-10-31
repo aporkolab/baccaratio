@@ -1,11 +1,24 @@
 <router-outlet></router-outlet>
-<div class="author-modal" *ngIf="showModal" (mouseleave)="hideModal()">
-	<div class="ultramodern-card">
-		<div class="ultramodern-name">Dr. Porkoláb Ádám</div>
-		<div class="ultramodern-info">📧 Email: <a href="mailto:adam@porkolab.hu" target="_blank">Ide írhatsz!</a></div>
-		<div class="ultramodern-info">🌐 Weboldal: <a href="https://www.aporkolab.com"
-				target="_blank">https://www.aporkolab.com</a></div>
-		<div class="ultramodern-info">🐙 GitHub: <a href="https://github.com/APorkolab"
-				target="_blank">https://github.com/APorkolab</a></div>
-	</div>
-</div>
+@if (showModal) {
+  <div class="author-modal" (mouseleave)="hideModal()">
+    <div class="ultramodern-card">
+      <div class="ultramodern-name">Dr. Porkoláb Ádám</div>
+      <div class="ultramodern-info">
+        📧 Email:
+        <a href="mailto:adam@porkolab.hu" target="_blank">Ide írhatsz!</a>
+      </div>
+      <div class="ultramodern-info">
+        🌐 Weboldal:
+        <a href="https://www.aporkolab.com" target="_blank"
+          >https://www.aporkolab.com</a
+        >
+      </div>
+      <div class="ultramodern-info">
+        🐙 GitHub:
+        <a href="https://github.com/APorkolab" target="_blank"
+          >https://github.com/APorkolab</a
+        >
+      </div>
+    </div>
+  </div>
+}

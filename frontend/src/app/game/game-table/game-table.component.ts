@@ -1,13 +1,20 @@
 import { Card } from './../../model/card';
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BetPanelComponent } from '../bet-panel/bet-panel.component';
 import { PlayerStatusComponent } from '../player-status/player-status.component';
 import { Subscription } from 'rxjs';
 import { GameService } from '../game.service';
 import { environment } from 'src/environments/environment';
-import { CommonModule } from '@angular/common';
-import { trigger, transition, query, style, stagger, animate } from '@angular/animations';
+
+import {
+  trigger,
+  transition,
+  query,
+  style,
+  stagger,
+  animate,
+} from '@angular/animations';
 import { BetHistoryComponent } from '../bet-history/bet-history.component';
 
 @Component({
@@ -15,21 +22,32 @@ import { BetHistoryComponent } from '../bet-history/bet-history.component';
   templateUrl: './game-table.component.html',
   styleUrls: ['./game-table.component.scss'],
   standalone: true,
-  imports: [CommonModule, PlayerStatusComponent, BetPanelComponent, BetHistoryComponent],
+  imports: [PlayerStatusComponent, BetPanelComponent, BetHistoryComponent],
   animations: [
     trigger('cardAnimation', [
       transition('* => *', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'translateY(-50px)' }),
-          stagger('150ms',
-            animate('500ms cubic-bezier(0.35, 0, 0.25, 1)',
-            style({ opacity: 1, transform: 'none' })))
-        ], { optional: true })
-      ])
-    ])
-  ]
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateY(-50px)' }),
+            stagger(
+              '150ms',
+              animate(
+                '500ms cubic-bezier(0.35, 0, 0.25, 1)',
+                style({ opacity: 1, transform: 'none' }),
+              ),
+            ),
+          ],
+          { optional: true },
+        ),
+      ]),
+    ]),
+  ],
 })
 export class GameTableComponent implements OnInit, OnDestroy {
+  private http = inject(HttpClient);
+  private gameService = inject(GameService);
+
   apiUrl: string = environment.apiUrl;
   playerCardsSubject: any;
 
@@ -48,8 +66,6 @@ export class GameTableComponent implements OnInit, OnDestroy {
   isLoading: boolean = false;
   showModal: boolean = false;
 
-  constructor(private http: HttpClient, private gameService: GameService) { }
-
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
   }
@@ -58,12 +74,12 @@ export class GameTableComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.gameService.playerCards$.subscribe((cards: Card[]) => {
         this.playerCards = cards;
-      })
+      }),
     );
     this.subscriptions.add(
       this.gameService.bankerCards$.subscribe((cards: Card[]) => {
         this.bankerCards = cards;
-      })
+      }),
     );
   }
 
@@ -74,8 +90,6 @@ export class GameTableComponent implements OnInit, OnDestroy {
       });
     }
   }
-
-
 
   getCardImage(card: Card): string {
     if (!card || !card.value || !card.suit) {
@@ -109,5 +123,4 @@ export class GameTableComponent implements OnInit, OnDestroy {
   hideModal(): void {
     this.showModal = false;
   }
-
 }
